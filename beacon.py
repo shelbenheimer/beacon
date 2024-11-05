@@ -17,11 +17,24 @@ class Broadcast:
 		self.interface = interface
 
 	def ConstructPacket(self):
-		dot11 = Dot11(type=0, subtype=8, addr1="FF:FF:FF:FF:FF:FF", addr2=self.bssid, addr3=self.bssid)
-		beacon = Dot11Beacon()
-		essid = Dot11Elt(ID="SSID", info=self.ssid, len=len(self.ssid))
+		rsn_info = (
+    		b"\x01\x00"         # RSN Version: 1
+    		b"\x00\x0f\xac\x09" # Group Cipher Suite: AES-GCMP WPA3
+    		b"\x01\x00"         # Pairwise Cipher Suite Count
+    		b"\x00\x0f\xac\x09" # Pairwise Cipher Suite List: AES-GCMP
+    		b"\x01\x00"         # Auth Key Management Suite Count
+    		b"\x00\x0f\xac\x08" # Auth Key Management List: SAE
+    		b"\x00\x00"         # RSN Capabilities
+		)
 
-		packet = RadioTap() / dot11 / beacon / essid
+		dot11 = Dot11(type=0, subtype=8, addr1="FF:FF:FF:FF:FF:FF", addr2=self.bssid, addr3=self.bssid)
+		beacon = Dot11Beacon(cap="ESS+privacy")
+		
+		essid = Dot11Elt(ID="SSID", info=self.ssid, len=len(self.ssid))
+		rates_elt = Dot11Elt(ID="Rates", info=b"\x82\x84\x8b\x96\x0c\x12\x18\x24")
+		rsn_elt = Dot11Elt(ID=48, info=rsn_info)
+
+		packet = RadioTap() / dot11 / beacon / essid / rates_elt / rsn_elt
 		return packet
 
 def RandomBSSID():
